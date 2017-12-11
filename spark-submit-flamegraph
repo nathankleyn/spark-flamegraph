@@ -42,7 +42,7 @@ function install_deps() {
 }
 
 function run_influxdb() {
-  echo -e "[$(date +%FT%T)] Starting InfluxDB"
+  echo -e "[$(date +%FT%T)] Starting InfluxDB on port ${influx_http_port}, meta port ${influx_meta_port}..."
   cat << EOF >influxdb.conf
 reporting-disabled = true
 hostname = "${local_ip}"
@@ -79,28 +79,14 @@ EOF
 }
 
 function run_spark_submit() {
-  spark_args=()
-  jars=$install_dir/statsd-jvm-profiler.jar
-  while [[ $# > 0 ]]; do
-    case "$1" in
-      --jars) jars="$jars,$2"
-        shift
-        ;;
-      *) spark_args+=("$1")
-        [[ "$1" == *.jar ]] && flamegraph_title="$1"
-        ;;
-    esac
-    shift
-  done
-
   spark_cmd=(spark-submit)
   spark_cmd+=(--jars)
-  spark_cmd+=("$jars")
+  spark_cmd+=("${install_dir}/statsd-jvm-profiler.jar")
   spark_cmd+=(--conf)
   spark_cmd+=("spark.executor.extraJavaOptions=-javaagent:statsd-jvm-profiler.jar=server=${local_ip},port=${influx_http_port},reporter=InfluxDBReporter,database=profiler,username=profiler,password=profiler,prefix=sparkapp,tagMapping=spark")
   spark_cmd+=(--conf)
   spark_cmd+=("spark.driver.extraJavaOptions=-javaagent:${install_dir}/statsd-jvm-profiler.jar=server=${local_ip},port=${influx_http_port},reporter=InfluxDBReporter,database=profiler,username=profiler,password=profiler,prefix=sparkapp,tagMapping=spark")
-  spark_cmd+=(${spark_args[@]})
+  spark_cmd+=("$@")
 
   echo -e "[$(date +%FT%T)] Executing: ${spark_cmd[@]}"
   "${spark_cmd[@]}" || echo "Spark has exited with bad exit code"
