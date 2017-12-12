@@ -81,7 +81,7 @@ EOF
 function run_spark_submit() {
   spark_cmd=(spark-submit)
   spark_cmd+=(--jars)
-  spark_cmd+=("${install_dir}/statsd-jvm-profiler.jar")
+  spark_cmd+=("file:/${install_dir}/statsd-jvm-profiler.jar")
   spark_cmd+=(--conf)
   spark_cmd+=("spark.executor.extraJavaOptions=-javaagent:statsd-jvm-profiler.jar=server=${local_ip},port=${influx_http_port},reporter=InfluxDBReporter,database=profiler,username=profiler,password=profiler,prefix=sparkapp,tagMapping=spark")
   spark_cmd+=(--conf)
